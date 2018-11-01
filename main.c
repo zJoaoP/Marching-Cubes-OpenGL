@@ -2,16 +2,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <GL/glut.h>
+#include <math.h>
+
+#define INF (1 << 29)
 
 typedef struct Model{
-	// Definir vetor de pontos.
-	// Chamar função de normalização.
-	// 
-	int x;
+	GLfloat *vertexArray;
+	int listSize;
 } Model;
 
 Model *model = NULL;
 float ratio = 0.0;
+
+float max(float a, float b){
+	return (a > b) ? a : b;
+}
+
+float min(float a, float b){
+	return (a < b) ? a : b;
+}
+
+Model* initModelFile(int listSize){
+	Model *model = (Model*) malloc(sizeof(Model));
+	model->vertexArray = (GLfloat*) malloc(sizeof(GLfloat) * listSize * 3);
+	model->listSize = listSize;
+	return model;
+}
 
 int lineCount(char fileName[]){
 	FILE *file = fopen(fileName, "rw+");
@@ -38,17 +54,47 @@ Model* readXYZFile(char fileName[]){
 	if(file == NULL)
 		return NULL;
 	else{
-		int listSize = lineCount(fileName);
+		float minX = INF, minY = INF, minZ = INF;
+		float maxX = 0, maxY = 0, maxZ = 0;
+		int listPosition = 0, i;
+		float x, y, z;
+		
+		model = initModelFile(listSize);
+		while(fscanf(file, "%f %f %f", &x, &y, &z) == 3){
+			model->vertexArray[listPosition] = x;
+			model->vertexArray[listPosition + 1] = y;
+			model->vertexArray[listPosition + 2] = z;
+			listPosition += 3;
 
+			maxX = max(maxX, x);
+			maxY = max(maxY, y);
+			maxZ = max(maxZ, z);
 
+			minX = min(minX, x);
+			minY = min(minY, y);
+			minZ = min(minZ, z);
+		}
 		fclose(file);
+
+		for(i = 0; i < listSize; i += 3){
+			model->vertexArray[i] = (model->vertexArray[i] - minX) / (maxX - minX);
+			model->vertexArray[i + 1] = (model->vertexArray[i + 1] - minY) / (maxY - minY);
+			model->vertexArray[i + 2] = (model->vertexArray[i + 2] - minZ) / (maxZ - minZ);
+		}
 	}
 	return model;
 }
 
 void draw(){
 	glClear(GL_COLOR_BUFFER_BIT);
-	gluLookAt(1.0, 0.0, 0.0, 0, 0, 0, 0, 1, 0);
+	glLoadIdentity();
+	gluPerspective(10.0f, ratio, 0.001, 3.0);
+	gluLookAt(1.0, 1.0, 1.0, 0, 0, 0, 0, 1, 0);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
+	glDrawArrays(GL_POINTS, 0, model->listSize);
+	glDisableClientState(GL_VERTEX_ARRAY);
 
 	glFlush();
 }
@@ -59,15 +105,14 @@ void reshape(int w, int h){
 	glLoadIdentity();
 	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 
-	gluPerspective(10.0f, ratio, 0.1, 50);
+	gluPerspective(10.0f, ratio, 0.0001, 2.0);
 	glMatrixMode(GL_MODELVIEW);
 }
 
 void initScene(){
 	glMatrixMode(GL_MODELVIEW);
-	glClearColor(0.0, 0.0, 0.5, 0.0);
-	glEnable(GL_STENCIL_TEST);
-	glEnable(GL_DEPTH_TEST);
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 }
 
 int main(int argc, char *argv[]){
