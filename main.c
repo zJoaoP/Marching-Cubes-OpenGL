@@ -5,6 +5,8 @@
 #include <math.h>
 
 #define INF (1 << 29)
+#define RES_W 680
+#define RES_H 440
 
 typedef struct Model{
 	GLfloat *vertexArray;
@@ -122,6 +124,9 @@ int main(int argc, char *argv[]){
 	}
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+
+	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - RES_W) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - RES_H) / 2);
+	glutInitWindowSize(RES_W, RES_W);
 
 	glutCreateWindow("CG - Marching Cubes!");
 	glutDisplayFunc(draw);
