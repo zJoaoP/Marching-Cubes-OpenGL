@@ -6,7 +6,7 @@
 
 #define INF (1 << 29)
 #define RES_W 680
-#define RES_H 440
+#define RES_H 680
 
 typedef struct Model{
 	GLfloat *vertexArray;
@@ -15,7 +15,6 @@ typedef struct Model{
 
 Model *model = NULL;
 float ratio = 0.0;
-char operation = 'v';
 
 float max(float a, float b){
 	return (a > b) ? a : b;
@@ -89,13 +88,15 @@ Model* readXYZFile(char fileName[]){
 }
 
 void draw(){
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glShadeModel(GL_FLAT);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(10.0f, ratio, 0.1, 5.0);
-	gluLookAt(1.0, 0.5, 1.0, 0, 0, 0, 0, 1, 0);
+	gluPerspective(10.0f, ratio, 0.1, 500.0);
+	gluLookAt(0.6, 0.65, 1.0, 0.5, 0.5, 0.5, 0, 1, 0);
 
+	glColor3f(1.0, 1.0, 1.0);
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
 		glLoadIdentity();
@@ -105,14 +106,14 @@ void draw(){
 		glDisableClientState(GL_VERTEX_ARRAY);
 	glPopMatrix();
 
-	glFlush();
+	glutSwapBuffers();
 }
 
 void reshape(int w, int h){
 	ratio = (float) w / h;
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
 	glLoadIdentity();
-	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
+	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
 	glMatrixMode(GL_MODELVIEW);
 
 	glutPostRedisplay();
@@ -121,7 +122,17 @@ void reshape(int w, int h){
 void initScene(){
 	glMatrixMode(GL_MODELVIEW);
 	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
+	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
+
+	glEnable(GL_DEPTH_TEST);
+}
+
+void mouse(int button, int state, int x, int y){
+
+}
+
+void keyboard(unsigned char key, int x, int y){
+
 }
 
 int main(int argc, char *argv[]){
@@ -130,12 +141,14 @@ int main(int argc, char *argv[]){
 		return 1;
 	}
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 
 	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - RES_W) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - RES_H) / 2);
 	glutInitWindowSize(RES_W, RES_W);
 
 	glutCreateWindow("CG - Marching Cubes!");
+	glutMouseFunc(mouse);
+	glutKeyboardFunc(keyboard);
 	glutDisplayFunc(draw);
 	
 	initScene();
