@@ -15,6 +15,7 @@ typedef struct Model{
 
 Model *model = NULL;
 float ratio = 0.0;
+char operation = 'v';
 
 float max(float a, float b){
 	return (a > b) ? a : b;
@@ -78,7 +79,7 @@ Model* readXYZFile(char fileName[]){
 		}
 		fclose(file);
 
-		for(i = 0; i < listSize; i += 3){
+		for(i = 0; i < listSize * 3; i += 3){
 			model->vertexArray[i] = (model->vertexArray[i] - minX) / (maxX - minX);
 			model->vertexArray[i + 1] = (model->vertexArray[i + 1] - minY) / (maxY - minY);
 			model->vertexArray[i + 2] = (model->vertexArray[i + 2] - minZ) / (maxZ - minZ);
@@ -89,14 +90,20 @@ Model* readXYZFile(char fileName[]){
 
 void draw(){
 	glClear(GL_COLOR_BUFFER_BIT);
-	glLoadIdentity();
-	gluPerspective(10.0f, ratio, 0.001, 3.0);
-	gluLookAt(1.0, 1.0, 1.0, 0, 0, 0, 0, 1, 0);
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
-	glDrawArrays(GL_POINTS, 0, model->listSize);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(10.0f, ratio, 0.1, 5.0);
+	gluLookAt(1.0, 0.5, 1.0, 0, 0, 0, 0, 1, 0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+		glLoadIdentity();
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
+		glDrawArrays(GL_POINTS, 0, model->listSize);
+		glDisableClientState(GL_VERTEX_ARRAY);
+	glPopMatrix();
 
 	glFlush();
 }
@@ -106,9 +113,9 @@ void reshape(int w, int h){
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
 	glLoadIdentity();
 	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
-
-	gluPerspective(10.0f, ratio, 0.0001, 2.0);
 	glMatrixMode(GL_MODELVIEW);
+
+	glutPostRedisplay();
 }
 
 void initScene(){
