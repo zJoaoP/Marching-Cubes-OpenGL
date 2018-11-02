@@ -14,6 +14,7 @@ typedef struct Model{
 } Model;
 
 Model *model = NULL;
+
 float ratio = 0.0;
 
 float max(float a, float b){
@@ -87,34 +88,53 @@ Model* readXYZFile(char fileName[]){
 	return model;
 }
 
-void draw(){
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glShadeModel(GL_FLAT);
+void drawUnitaryBox(){
+	glPushMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
 
+		glTranslatef(0.5, 0.5, 0.5);
+		glColor3f(1.0, 0.0, 0.0);
+
+		glutWireCube(1.0);
+	glPopMatrix();
+}
+
+void setupCamera(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(10.0f, ratio, 0.1, 500.0);
-	gluLookAt(0.6, 0.65, 1.0, 0.5, 0.5, 0.5, 0, 1, 0);
+	gluLookAt(5, 2, 6, 0.3, 0.45, 0.4, 0, 1, 0);
+}
+
+void draw(){
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDepthFunc(GL_LESS);
+
+	// drawUnitaryBox();
 
 	glColor3f(1.0, 1.0, 1.0);
-	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
+		glMatrixMode(GL_MODELVIEW);
+		
 		glLoadIdentity();
+
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
 		glDrawArrays(GL_POINTS, 0, model->listSize);
 		glDisableClientState(GL_VERTEX_ARRAY);
+
 	glPopMatrix();
 
 	glutSwapBuffers();
 }
 
 void reshape(int w, int h){
+	printf("Reshape\n");
 	ratio = (float) w / h;
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
-	glLoadIdentity();
-	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
-	glMatrixMode(GL_MODELVIEW);
+
+	setupCamera();
 
 	glutPostRedisplay();
 }
@@ -150,6 +170,7 @@ int main(int argc, char *argv[]){
 	glutMouseFunc(mouse);
 	glutKeyboardFunc(keyboard);
 	glutDisplayFunc(draw);
+	glutReshapeFunc(reshape);
 	
 	initScene();
 
