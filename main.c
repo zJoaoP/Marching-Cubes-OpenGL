@@ -13,8 +13,15 @@ typedef struct Model{
 	int listSize;
 } Model;
 
+typedef struct MarchingCubesMesh{
+	GLfloat *vertexArray;
+	GLuint *faces;
+	int vertexCount;
+} MCM;
+
 Model *model = NULL;
 
+int pointCloudVisualization = 1;
 float ratio = 0.0;
 
 float max(float a, float b){
@@ -113,24 +120,27 @@ void draw(){
 
 	// drawUnitaryBox();
 
-	glColor3f(1.0, 1.0, 1.0);
-	glPushMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		
-		glLoadIdentity();
+	if(pointCloudVisualization){
+		glColor3f(1.0, 1.0, 1.0);
+		glPushMatrix();
+			glMatrixMode(GL_MODELVIEW);
+			
+			glLoadIdentity();
 
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
-		glDrawArrays(GL_POINTS, 0, model->listSize);
-		glDisableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
+			glDrawArrays(GL_POINTS, 0, model->listSize);
+			glDisableClientState(GL_VERTEX_ARRAY);
 
-	glPopMatrix();
-
+		glPopMatrix();		
+	}
+	else{
+		//Show marching cubes here.
+	}
 	glutSwapBuffers();
 }
 
 void reshape(int w, int h){
-	printf("Reshape\n");
 	ratio = (float) w / h;
 	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
 
@@ -147,12 +157,11 @@ void initScene(){
 	glEnable(GL_DEPTH_TEST);
 }
 
-void mouse(int button, int state, int x, int y){
-
-}
-
 void keyboard(unsigned char key, int x, int y){
-
+	if(key == 'm' || key == 'M'){
+		pointCloudVisualization = !pointCloudVisualization;
+		glutPostRedisplay();
+	}
 }
 
 int main(int argc, char *argv[]){
@@ -167,7 +176,6 @@ int main(int argc, char *argv[]){
 	glutInitWindowSize(RES_W, RES_W);
 
 	glutCreateWindow("CG - Marching Cubes!");
-	glutMouseFunc(mouse);
 	glutKeyboardFunc(keyboard);
 	glutDisplayFunc(draw);
 	glutReshapeFunc(reshape);
