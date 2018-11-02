@@ -16,7 +16,7 @@ typedef struct XYZ{
 typedef struct MarchingCubesMesh{
 	GLfloat *vertexArray;
 	GLuint *faces;
-	int vertexCount;
+	int vertexCount, facesCount;
 } MCM;
 
 XYZ *model = NULL;
@@ -44,12 +44,26 @@ void set3DValue(int *data, int i, int j, int k, int size, int value){
 	data[(k * size * size) + (j * size) + i] = value;
 }
 
+void loadLookUpTable(int lookUpTable[256][16], char *lutFileName){
+	FILE *file = fopen(lutFileName, "rw+");
+	if(file == NULL)
+		return;
+
+	int i, j;
+	for(i = 0; i < 256; i++){
+		for(j = 0; j < 4; j++)
+			fscanf(file, "%d %d %d %d", &lookUpTable[i][4 * j + 0], &lookUpTable[i][4 * j + 1], &lookUpTable[i][4 * j + 2], &lookUpTable[i][4 * j + 3]);
+	}
+	fclose(file);
+}
+
 MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	int cubesPerDimension = floor(1.0 / cubeSize);
 	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
 	if(data == NULL)
 		return NULL;
-	
+
+	int lut[256][16];
 	int i;
 	for(i = 0; i < model->listSize; i++){
 		float x = model->vertexArray[i * 3];
@@ -61,11 +75,12 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 		int cubeZ = (int) floor(z / cubeSize);
 
 		set3DValue(data, cubeX, cubeY, cubeZ, cubesPerDimension, 1);
+		// printf("O ponto (%f, %f, %f) pertence ao cubo (%d, %d, %d)\n", x, y, z, cubeX, cubeY, cubeZ);
 	}
+	loadLookUpTable(lut, lutFileName);
 	/*
 		3. Rodar o marching cubes com base na LookUp Table.
 			3.1 Como armazenar as informações dos triângulos já gerados?
-
 	*/
 	free(data);
 	return NULL;
