@@ -40,8 +40,13 @@ XYZ* initXYZ(int listSize){
 	return model;
 }
 
-void set3DValue(int *data, int i, int j, int k, int size, int value){
-	data[(k * size * size) + (j * size) + i] = value;
+MCM* initMCM(){
+	MCM *mcm = (MCM*) malloc(sizeof(MCM));
+	mcm->vertexArray = NULL;
+	mcm->faces = NULL;
+	mcm->vertexCount = 0;
+	mcm->facesCount = 0;
+	return mcm;	
 }
 
 void loadLookUpTable(int lookUpTable[256][16], char *lutFileName){
@@ -57,6 +62,17 @@ void loadLookUpTable(int lookUpTable[256][16], char *lutFileName){
 	fclose(file);
 }
 
+void set3DValue(int *data, int i, int j, int k, int size, int value){
+	if(i >= size || j >= size || k >= size)
+		return;
+
+	data[(k * size * size) + (j * size) + i] = value;
+}
+
+int get3DValue(int *data, int i, int j, int k, int size){
+	return data[(k * size * size) + (j * size) + i];
+}
+
 MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	int cubesPerDimension = floor(1.0 / cubeSize);
 	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
@@ -64,26 +80,22 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 		return NULL;
 
 	int lut[256][16];
-	int i;
+	int i, j, k;
 	for(i = 0; i < model->listSize; i++){
-		float x = model->vertexArray[i * 3];
-		float y = model->vertexArray[i * 3 + 1];
-		float z = model->vertexArray[i * 3 + 2];
+		double x = model->vertexArray[i * 3];
+		double y = model->vertexArray[i * 3 + 1];
+		double z = model->vertexArray[i * 3 + 2];
 
 		int cubeX = (int) floor(x / cubeSize);
 		int cubeY = (int) floor(y / cubeSize);
 		int cubeZ = (int) floor(z / cubeSize);
 
 		set3DValue(data, cubeX, cubeY, cubeZ, cubesPerDimension, 1);
-		// printf("O ponto (%f, %f, %f) pertence ao cubo (%d, %d, %d)\n", x, y, z, cubeX, cubeY, cubeZ);
 	}
+	MCM *mcm = initMCM();
 	loadLookUpTable(lut, lutFileName);
-	/*
-		3. Rodar o marching cubes com base na LookUp Table.
-			3.1 Como armazenar as informações dos triângulos já gerados?
-	*/
 	free(data);
-	return NULL;
+	return mcm;
 }
 
 int lineCount(char fileName[]){
@@ -171,7 +183,6 @@ void draw(){
 	if(pointCloudVisualization){
 		glPushMatrix();
 			glMatrixMode(GL_MODELVIEW);
-			
 			glLoadIdentity();
 
 			glEnableClientState(GL_VERTEX_ARRAY);
@@ -179,10 +190,10 @@ void draw(){
 			glDrawArrays(GL_POINTS, 0, model->listSize);
 			glDisableClientState(GL_VERTEX_ARRAY);
 
-		glPopMatrix();		
+		glPopMatrix();
 	}
 	else{
-		//Show marching cubes here.
+
 	}
 	glutSwapBuffers();
 }
