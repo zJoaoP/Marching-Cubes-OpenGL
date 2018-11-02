@@ -8,10 +8,10 @@
 #define RES_W 680
 #define RES_H 680
 
-typedef struct Model{
+typedef struct XYZ{
 	GLfloat *vertexArray;
 	int listSize;
-} Model;
+} XYZ;
 
 typedef struct MarchingCubesMesh{
 	GLfloat *vertexArray;
@@ -19,7 +19,8 @@ typedef struct MarchingCubesMesh{
 	int vertexCount;
 } MCM;
 
-Model *model = NULL;
+XYZ *model = NULL;
+MCM *mcm = NULL;
 
 int pointCloudVisualization = 1;
 float ratio = 0.0;
@@ -32,8 +33,8 @@ float min(float a, float b){
 	return (a < b) ? a : b;
 }
 
-Model* initModel(int listSize){
-	Model *model = (Model*) malloc(sizeof(Model));
+XYZ* initXYZ(int listSize){
+	XYZ *model = (XYZ*) malloc(sizeof(XYZ));
 	model->vertexArray = (GLfloat*) malloc(sizeof(GLfloat) * listSize * 3);
 	model->listSize = listSize;
 	return model;
@@ -54,13 +55,13 @@ int lineCount(char fileName[]){
 	return count;
 }
 
-Model* readXYZFile(char fileName[]){
+XYZ* readXYZFile(char fileName[]){
 	int listSize = lineCount(fileName);
 	if(listSize == 0)
 		return NULL;
 
 	FILE *file = fopen(fileName, "rw+");
-	Model *model = NULL;
+	XYZ *model = NULL;
 	if(file == NULL)
 		return NULL;
 	else{
@@ -69,7 +70,7 @@ Model* readXYZFile(char fileName[]){
 		int listPosition = 0, i;
 		float x, y, z;
 		
-		model = initModel(listSize);
+		model = initXYZ(listSize);
 		while(fscanf(file, "%f %f %f", &x, &y, &z) == 3){
 			model->vertexArray[listPosition] = x;
 			model->vertexArray[listPosition + 1] = y;
