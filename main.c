@@ -40,6 +40,37 @@ XYZ* initXYZ(int listSize){
 	return model;
 }
 
+void set3DValue(int *data, int i, int j, int k, int size, int value){
+	data[(k * size * size) + (j * size) + i] = value;
+}
+
+MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
+	int cubesPerDimension = floor(1.0 / cubeSize);
+	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
+	if(data == NULL)
+		return NULL;
+	
+	int i;
+	for(i = 0; i < model->listSize; i++){
+		float x = model->vertexArray[i * 3];
+		float y = model->vertexArray[i * 3 + 1];
+		float z = model->vertexArray[i * 3 + 2];
+
+		int cubeX = (int) floor(x / cubeSize);
+		int cubeY = (int) floor(y / cubeSize);
+		int cubeZ = (int) floor(z / cubeSize);
+
+		set3DValue(data, cubeX, cubeY, cubeZ, cubesPerDimension, 1);
+	}
+	/*
+		3. Rodar o marching cubes com base na LookUp Table.
+			3.1 Como armazenar as informações dos triângulos já gerados?
+
+	*/
+	free(data);
+	return NULL;
+}
+
 int lineCount(char fileName[]){
 	FILE *file = fopen(fileName, "rw+");
 	int count = 0;
@@ -121,8 +152,8 @@ void draw(){
 
 	// drawUnitaryBox();
 
+	glColor3f(1.0, 1.0, 1.0);
 	if(pointCloudVisualization){
-		glColor3f(1.0, 1.0, 1.0);
 		glPushMatrix();
 			glMatrixMode(GL_MODELVIEW);
 			
@@ -184,6 +215,7 @@ int main(int argc, char *argv[]){
 	initScene();
 
 	model = readXYZFile(argv[1]);
+	mcm = generateMeshFromXYZ(model, atof(argv[3]), argv[2]);
 
 	glutMainLoop();
 	return 0;
