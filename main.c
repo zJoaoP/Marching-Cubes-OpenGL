@@ -24,7 +24,7 @@ float min(float a, float b){
 	return (a < b) ? a : b;
 }
 
-Model* initModelFile(int listSize){
+Model* initModel(int listSize){
 	Model *model = (Model*) malloc(sizeof(Model));
 	model->vertexArray = (GLfloat*) malloc(sizeof(GLfloat) * listSize * 3);
 	model->listSize = listSize;
@@ -61,7 +61,7 @@ Model* readXYZFile(char fileName[]){
 		int listPosition = 0, i;
 		float x, y, z;
 		
-		model = initModelFile(listSize);
+		model = initModel(listSize);
 		while(fscanf(file, "%f %f %f", &x, &y, &z) == 3){
 			model->vertexArray[listPosition] = x;
 			model->vertexArray[listPosition + 1] = y;
