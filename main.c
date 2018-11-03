@@ -94,6 +94,9 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	}
 	MCM *mcm = initMCM();
 	loadLookUpTable(lut, lutFileName);
+
+	//PAREI AQUI
+
 	free(data);
 	return mcm;
 }
