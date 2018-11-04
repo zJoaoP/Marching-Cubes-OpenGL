@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include <GL/glut.h>
 #include <stdlib.h>
 #include <string.h>
-#include <GL/glut.h>
+#include <stdio.h>
 #include <math.h>
 
 #define INF (1 << 29)
@@ -163,7 +163,7 @@ void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16
 
 MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	int cubesPerDimension = floor(1.0 / cubeSize) + 2;
-	printf("Cubes Per Dimension: %d\n", cubesPerDimension);
+	// printf("Cubes Per Dimension: %d\n", cubesPerDimension);
 	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
 	if(data == NULL)
 		return NULL;
@@ -184,8 +184,6 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	
 	MCM *mcm = initMCM();
 	loadLookUpTable(lut, lutFileName);
-
-	printf("Inicio do processamento.\n");
 	for(i = 0; i < cubesPerDimension - 1; i++){
 		for(j = 0; j < cubesPerDimension - 1; j++){
 			for(k = 0; k < cubesPerDimension - 1; k++){
@@ -219,7 +217,6 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 		}
 	}
 	free(data);
-	printf("Fim do processamento.\n");
 	return mcm;
 }
 
@@ -383,7 +380,8 @@ int main(int argc, char *argv[]){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 
-	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - RES_W) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - RES_H) / 2);
+	// glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - RES_W) / 2, (glutGet(GLUT_SCREEN_HEIGHT) - RES_H) / 2);
+	glutInitWindowPosition(0, 0);
 	glutInitWindowSize(RES_W, RES_W);
 
 	glutCreateWindow("CG - Marching Cubes!");
