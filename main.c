@@ -9,12 +9,12 @@
 #define RES_H 680
 
 typedef struct XYZ{
-	GLfloat *vertexArray;
+	GLdouble *vertexArray;
 	int listSize;
 } XYZ;
 
 typedef struct MarchingCubesMesh{
-	GLfloat *vertexArray;
+	GLdouble *vertexArray;
 	GLuint *faces;
 	int vertexCount, facesCount;
 } MCM;
@@ -25,17 +25,17 @@ MCM *mcm = NULL;
 int pointCloudVisualization = 1;
 float ratio = 0.0;
 
-float max(float a, float b){
+double max(double a, double b){
 	return (a > b) ? a : b;
 }
 
-float min(float a, float b){
+double min(double a, double b){
 	return (a < b) ? a : b;
 }
 
 XYZ* initXYZ(int listSize){
 	XYZ *model = (XYZ*) malloc(sizeof(XYZ));
-	model->vertexArray = (GLfloat*) malloc(sizeof(GLfloat) * listSize * 3);
+	model->vertexArray = (GLdouble*) malloc(sizeof(GLdouble) * listSize * 3);
 	model->listSize = listSize;
 	return model;
 }
@@ -47,6 +47,15 @@ MCM* initMCM(){
 	mcm->vertexCount = 0;
 	mcm->facesCount = 0;
 	return mcm;	
+}
+
+void freeXYZ(XYZ **model){
+	free((*model)->vertexArray);
+}
+
+void freeMCM(MCM **mcm){
+	free((*mcm)->vertexArray);
+	free((*mcm)->faces);
 }
 
 void loadLookUpTable(int lookUpTable[256][16], char *lutFileName){
@@ -73,8 +82,88 @@ int get3DValue(int *data, int i, int j, int k, int size){
 	return data[(k * size * size) + (j * size) + i];
 }
 
+double generateMarchingCubesCoord_X(int x, int vertex, double cubeSize){
+	if(vertex == 3 || vertex == 8 || vertex == 7 || vertex == 11)
+		return x * cubeSize;
+	else if(vertex == 0 || vertex == 4 || vertex == 6 || vertex == 2)
+		return x * cubeSize + cubeSize / 2;
+	else
+		return (x + 1) * cubeSize;
+}
+
+double generateMarchingCubesCoord_Y(int y, int vertex, double cubeSize){
+	if(vertex == 0 || vertex == 1 || vertex == 2 || vertex == 3)
+		return y * cubeSize;
+	else if(vertex == 8 || vertex == 9 || vertex == 10 || vertex == 11)
+		return y * cubeSize + cubeSize / 2;
+	else
+		return (y + 1) * cubeSize;
+}
+
+double generateMarchingCubesCoord_Z(int z, int vertex, double cubeSize){
+	if(vertex == 0 || vertex == 9 || vertex == 4 || vertex == 8)
+		return z * cubeSize;
+	else if(vertex == 3 || vertex == 1 || vertex == 5 || vertex == 7)
+		return z * cubeSize + cubeSize / 2;
+	else
+		return (z + 1) * cubeSize;
+}
+
+void insertVertexMCM(MCM **mcm, double x, double y, double z){
+	(*mcm)->vertexArray = (GLdouble*) realloc((*mcm)->vertexArray, ((*mcm)->vertexCount + 3) * sizeof(GLdouble));
+
+	int currentPosition = (*mcm)->vertexCount;
+	
+	(*mcm)->vertexArray[currentPosition] = x;
+	(*mcm)->vertexArray[currentPosition + 1] = y;
+	(*mcm)->vertexArray[currentPosition + 2] = z;
+	(*mcm)->vertexCount += 3;
+}
+
+void insertVertexOfFaceMCM(MCM **mcm, int vertexID){
+	if((*mcm)->faces == NULL)
+		(*mcm)->faces = (GLuint*) malloc(3 * sizeof(GLuint));
+	else
+		(*mcm)->faces = (GLuint*) realloc((*mcm)->faces, ((*mcm)->facesCount + 1) * sizeof(GLuint));
+
+	int currentPosition = (*mcm)->facesCount;
+
+	(*mcm)->faces[currentPosition] = vertexID;
+	(*mcm)->facesCount++;
+}
+
+//GET_VERTEX_ID == (if none) ? -1 : ID;
+
+int getVertexIDFromMCM(MCM *mcm, double x, double y, double z){
+	int i = 0;
+	for(i = 0; i < mcm->vertexCount; i += 3){
+		if(mcm->vertexArray[i] == x && mcm->vertexArray[i + 1] == y && mcm->vertexArray[i + 2] == z)
+			return i / 3;
+	}
+	return -1;
+}
+
+void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16], double cubeSize){
+	int i;
+	for(i = 0; triangles[i] != -1; i++){
+		double tX = generateMarchingCubesCoord_X(x, triangles[i], cubeSize) - cubeSize / 2;
+		double tY = generateMarchingCubesCoord_Y(y, triangles[i], cubeSize) - cubeSize / 2;
+		double tZ = generateMarchingCubesCoord_Z(z, triangles[i], cubeSize) - cubeSize / 2;
+
+		int id = getVertexIDFromMCM((*mcm), tX, tY, tZ);
+		if(id == -1){
+			insertVertexMCM(mcm, tX, tY, tZ);
+			insertVertexOfFaceMCM(mcm, ((*mcm)->vertexCount - 1) / 3);
+		}
+		else{
+			insertVertexOfFaceMCM(mcm, id);
+		}
+	}
+}
+
 MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
-	int cubesPerDimension = floor(1.0 / cubeSize);
+	int cubesPerDimension = floor(1.0 / cubeSize) + 2;
+	printf("Cubes Per Dimension: %d\n", cubesPerDimension);
 	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
 	if(data == NULL)
 		return NULL;
@@ -86,18 +175,51 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 		double y = model->vertexArray[i * 3 + 1];
 		double z = model->vertexArray[i * 3 + 2];
 
-		int cubeX = (int) floor(x / cubeSize);
-		int cubeY = (int) floor(y / cubeSize);
-		int cubeZ = (int) floor(z / cubeSize);
+		int cubeX = min((int) floor(x / cubeSize) + 1, cubesPerDimension - 2);
+		int cubeY = min((int) floor(y / cubeSize) + 1, cubesPerDimension - 2);
+		int cubeZ = min((int) floor(z / cubeSize) + 1, cubesPerDimension - 2);
 
 		set3DValue(data, cubeX, cubeY, cubeZ, cubesPerDimension, 1);
 	}
+	
 	MCM *mcm = initMCM();
 	loadLookUpTable(lut, lutFileName);
 
-	//PAREI AQUI
+	printf("Inicio do processamento.\n");
+	for(i = 0; i < cubesPerDimension - 1; i++){
+		for(j = 0; j < cubesPerDimension - 1; j++){
+			for(k = 0; k < cubesPerDimension - 1; k++){
+				int cubeID = 0;
+				if(get3DValue(data, i, j, k, cubesPerDimension))
+					cubeID |= 1;
 
+				if(get3DValue(data, i + 1, j, k, cubesPerDimension))
+					cubeID |= 2;
+
+				if(get3DValue(data, i + 1, j, k + 1, cubesPerDimension))
+					cubeID |= 4;
+
+				if(get3DValue(data, i, j, k + 1, cubesPerDimension))
+					cubeID |= 8;
+
+				if(get3DValue(data, i, j + 1, k, cubesPerDimension))
+					cubeID |= 16;
+
+				if(get3DValue(data, i + 1, j + 1, k, cubesPerDimension))
+					cubeID |= 32;
+
+				if(get3DValue(data, i + 1, j + 1, k + 1, cubesPerDimension))
+					cubeID |= 64;
+
+				if(get3DValue(data, i, j + 1, k + 1, cubesPerDimension))
+					cubeID |= 128;
+
+				generateAndInsertTriangles(&mcm, i, j, k, lut[cubeID], cubeSize);
+			}
+		}
+	}
 	free(data);
+	printf("Fim do processamento.\n");
 	return mcm;
 }
 
@@ -126,13 +248,13 @@ XYZ* readXYZFile(char fileName[]){
 	if(file == NULL)
 		return NULL;
 	else{
-		float minX = INF, minY = INF, minZ = INF;
-		float maxX = 0, maxY = 0, maxZ = 0;
+		double minX = INF, minY = INF, minZ = INF;
+		double maxX = 0, maxY = 0, maxZ = 0;
 		int listPosition = 0, i;
-		float x, y, z;
+		double x, y, z;
 		
 		model = initXYZ(listSize);
-		while(fscanf(file, "%f %f %f", &x, &y, &z) == 3){
+		while(fscanf(file, "%lf %lf %lf", &x, &y, &z) == 3){
 			model->vertexArray[listPosition] = x;
 			model->vertexArray[listPosition + 1] = y;
 			model->vertexArray[listPosition + 2] = z;
@@ -178,9 +300,8 @@ void setupCamera(){
 
 void draw(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDepthFunc(GL_LESS);
 
-	// drawUnitaryBox();
+	drawUnitaryBox();
 
 	glColor3f(1.0, 1.0, 1.0);
 	if(pointCloudVisualization){
@@ -189,14 +310,24 @@ void draw(){
 			glLoadIdentity();
 
 			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(3, GL_FLOAT, 0, model->vertexArray);
+			glVertexPointer(3, GL_DOUBLE, 0, model->vertexArray);
 			glDrawArrays(GL_POINTS, 0, model->listSize);
 			glDisableClientState(GL_VERTEX_ARRAY);
 
 		glPopMatrix();
 	}
 	else{
-
+		printf("MCM: %d faces e %d vértices.\n", mcm->facesCount / 3, mcm->vertexCount / 3);
+		glPushMatrix();
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glVertexPointer(3, GL_DOUBLE, 0, mcm->vertexArray);
+			glDrawElements(GL_TRIANGLES, mcm->facesCount, GL_UNSIGNED_INT, mcm->faces);
+			glDisableClientState(GL_VERTEX_ARRAY);
+		glPopMatrix();
 	}
 	glutSwapBuffers();
 }
@@ -216,6 +347,7 @@ void initScene(){
 	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_POLYGON_SMOOTH);
 }
 
 void keyboard(unsigned char key, int x, int y){
@@ -247,5 +379,8 @@ int main(int argc, char *argv[]){
 	mcm = generateMeshFromXYZ(model, atof(argv[3]), argv[2]);
 
 	glutMainLoop();
+
+	freeMCM(&mcm);
+	freeXYZ(&model);
 	return 0;
 }
