@@ -285,7 +285,7 @@ void drawUnitaryBox(){
 		glLoadIdentity();
 
 		glTranslatef(0.5, 0.5, 0.5);
-		glColor3f(1.0, 0.0, 0.0);
+		glColor3f(0.0, 0.0, 1.0);
 
 		glutWireCube(1.0);
 	glPopMatrix();
@@ -295,7 +295,7 @@ void setupCamera(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluPerspective(10.0f, ratio, 0.1, 500.0);
-	gluLookAt(5, 2, 6, 0.3, 0.45, 0.4, 0, 1, 0);
+	gluLookAt(2.5, 2, 8, 0.45, 0.45, 0.4, 0, 1, 0);
 }
 
 void draw(){
@@ -318,8 +318,26 @@ void draw(){
 	}
 	else{
 		printf("MCM: %d faces e %d vértices.\n", mcm->facesCount / 3, mcm->vertexCount / 3);
+		
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(1, 1);
+
 		glPushMatrix();
-			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glVertexPointer(3, GL_DOUBLE, 0, mcm->vertexArray);
+			glDrawElements(GL_TRIANGLES, mcm->facesCount, GL_UNSIGNED_INT, mcm->faces);
+			glDisableClientState(GL_VERTEX_ARRAY);
+		glPopMatrix();
+
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		glColor3f(0.0, 0.0, 0.0);
+		glPushMatrix();
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 			
