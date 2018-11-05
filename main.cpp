@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <map>
+
+using namespace std;
 
 #define INF (1 << 29)
 #define RES_W 680
@@ -19,11 +22,12 @@ typedef struct MarchingCubesMesh{
 	int vertexCount, facesCount;
 } MCM;
 
-XYZ *model = NULL;
-MCM *mcm = NULL;
-
+map <pair <double, pair <double, double> >, int> indexMap;
 int pointCloudVisualization = 1;
 float ratio = 0.0;
+
+XYZ *model = NULL;
+MCM *mcm = NULL;
 
 double max(double a, double b){
 	return (a > b) ? a : b;
@@ -118,6 +122,8 @@ void insertVertexMCM(MCM **mcm, double x, double y, double z){
 	(*mcm)->vertexArray[currentPosition + 1] = y;
 	(*mcm)->vertexArray[currentPosition + 2] = z;
 	(*mcm)->vertexCount += 3;
+
+	indexMap[make_pair(x, make_pair(y, z))] = currentPosition / 3;
 }
 
 void insertVertexOfFaceMCM(MCM **mcm, int vertexID){
@@ -132,23 +138,21 @@ void insertVertexOfFaceMCM(MCM **mcm, int vertexID){
 	(*mcm)->facesCount++;
 }
 
-//GET_VERTEX_ID == (if none) ? -1 : ID;
-
 int getVertexIDFromMCM(MCM *mcm, double x, double y, double z){
-	int i = 0;
-	for(i = 0; i < mcm->vertexCount; i += 3){
-		if(mcm->vertexArray[i] == x && mcm->vertexArray[i + 1] == y && mcm->vertexArray[i + 2] == z)
-			return i / 3;
-	}
-	return -1;
+	map <pair <double, pair <double, double> >, int>::iterator it;
+	it = indexMap.find(make_pair(x, make_pair(y, z)));
+	if(it != indexMap.end())
+		return it->second;
+	else
+		return -1;
 }
 
 void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16], double cubeSize){
 	int i;
 	for(i = 0; triangles[i] != -1; i++){
-		double tX = generateMarchingCubesCoord_X(x, triangles[i], cubeSize) - cubeSize / 2;
-		double tY = generateMarchingCubesCoord_Y(y, triangles[i], cubeSize) - cubeSize / 2;
-		double tZ = generateMarchingCubesCoord_Z(z, triangles[i], cubeSize) - cubeSize / 2;
+		double tX = generateMarchingCubesCoord_X(x, triangles[i], cubeSize) - (cubeSize / 2);
+		double tY = generateMarchingCubesCoord_Y(y, triangles[i], cubeSize) - (cubeSize / 2);
+		double tZ = generateMarchingCubesCoord_Z(z, triangles[i], cubeSize) - (cubeSize / 2);
 
 		int id = getVertexIDFromMCM((*mcm), tX, tY, tZ);
 		if(id == -1){
