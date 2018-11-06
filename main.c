@@ -4,6 +4,15 @@
 #include <stdio.h>
 #include <math.h>
 
+/*
+	Universidade Federal da Bahia
+	Departamendo de Ciência da Computação
+	Aluno: João Pedro Brito Silva (214002414)
+	MATA65 - Computação Gráfica
+
+	Trabalho Prático 2 - Marching Cubes
+*/
+
 #define INF (1 << 29)
 #define RES_W 680
 #define RES_H 680
