@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <math.h>
 
+#define max(X, Y) ((X > Y) ? X : Y)
+#define min(X, Y) ((X < Y) ? X : Y)
+
 /*
 	Universidade Federal da Bahia
 	Departamendo de Ciência da Computação
@@ -12,8 +15,8 @@
 
 	Trabalho Prático 2 - Marching Cubes
 */
-
 #define INF (1 << 29)
+#define HASH_SIZE 2048
 #define RES_W 680
 #define RES_H 680
 
@@ -28,18 +31,113 @@ typedef struct MarchingCubesMesh{
 	int vertexCount, facesCount;
 } MCM;
 
+typedef struct List{
+	double x, y, z;
+	unsigned int index;
+	struct List *next;
+} List;
+
+typedef struct Hash{
+	List **hashList;
+	int count;
+} Hash;
+
+
 XYZ *model = NULL;
 MCM *mcm = NULL;
+Hash *hash = NULL;
 
 int pointCloudVisualization = 1;
+double cubeSize = 0.3;
 float ratio = 0.0;
 
-double max(double a, double b){
-	return (a > b) ? a : b;
+void initList(List **l, double x, double y, double z, unsigned int index){
+	*l = (List *) malloc(sizeof(List));
+	if(*l == NULL)
+		return;
+
+	(*l)->x = x;
+	(*l)->y = y;
+	(*l)->z = z;
+	(*l)->index = index;
+	(*l)->next = NULL;
 }
 
-double min(double a, double b){
-	return (a < b) ? a : b;
+void freeList(List **l){
+	if(*l == NULL)
+		return;
+
+	freeList(&((*l)->next));
+	free(*l);
+}
+
+void insertList(List **l, double x, double y, double z, unsigned int index){
+	if(*l == NULL)
+		initList(l, x, y, z, index);
+	else{
+		if((*l)->next == NULL)
+			initList(&((*l)->next), x, y, z, index);
+		else
+			insertList(&((*l)->next), x, y, z, index);
+	}
+}
+
+void printList(List *l){
+	if(l == NULL)
+		return;
+	else{
+		printf("(%f, %f, %f) -> %d\n", l->x, l->y, l->z, l->index);
+		printList(l->next);
+	}
+}
+
+void initHash(Hash **h){
+	*h = (Hash*) malloc(sizeof(Hash));
+	if(*h == NULL)
+		return;
+
+	(*h)->hashList = (List**) malloc(sizeof(List *) * HASH_SIZE);
+	int i;
+	for(i = 0; i < HASH_SIZE; i++)
+		(*h)->hashList[i] = NULL;
+}
+
+int getIndexByPoint_List(List *l, double x, double y, double z){
+	if(l == NULL)
+		return -1;
+	else{
+		if(l->x == x && l->y == y && l->z == z)
+			return l->index;
+		else
+			return getIndexByPoint_List(l->next, x, y, z);
+	}
+}
+
+void freeHash(Hash **h){
+	int i;
+	for(i = 0; i < HASH_SIZE; i++)
+		freeList(&((*h)->hashList[i]));
+
+	free(*h);
+}
+
+int computePositionInHashTable(double x, double y, double z, double cubeSize){
+	int pX = (int) (x / cubeSize);
+	int pY = (int) (y / cubeSize);
+	int pZ = (int) (z / cubeSize);
+
+	int pos = (13 * pX) + (17 * pY) + (19 * pZ);
+	return pos % HASH_SIZE;
+}
+
+void insertHash(Hash **h, double x, double y, double z, unsigned int index){
+	int pos = computePositionInHashTable(x, y, z, cubeSize);
+	insertList(&((*h)->hashList[pos]), x, y, z, index);
+}
+
+int getIndexByPoint_Hash(Hash *h, double x, double y, double z){
+	int pos = computePositionInHashTable(x, y, z, cubeSize);
+	return getIndexByPoint_List(h->hashList[pos], x, y, z);
 }
 
 XYZ* initXYZ(int listSize){
@@ -141,15 +239,8 @@ void insertVertexOfFaceMCM(MCM **mcm, int vertexID){
 	(*mcm)->facesCount++;
 }
 
-//GET_VERTEX_ID == (if none) ? -1 : ID;
-
 int getVertexIDFromMCM(MCM *mcm, double x, double y, double z){
-	int i = 0;
-	for(i = 0; i < mcm->vertexCount; i += 3){
-		if(mcm->vertexArray[i] == x && mcm->vertexArray[i + 1] == y && mcm->vertexArray[i + 2] == z)
-			return i / 3;
-	}
-	return -1;
+	return getIndexByPoint_Hash(hash, x, y, z);
 }
 
 void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16], double cubeSize){
@@ -163,6 +254,8 @@ void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16
 		if(id == -1){
 			insertVertexMCM(mcm, tX, tY, tZ);
 			insertVertexOfFaceMCM(mcm, ((*mcm)->vertexCount - 1) / 3);
+
+			insertHash(&hash, tX, tY, tZ, ((*mcm)->vertexCount - 1) / 3);
 		}
 		else{
 			insertVertexOfFaceMCM(mcm, id);
@@ -172,7 +265,6 @@ void generateAndInsertTriangles(MCM **mcm, int x, int y, int z, int triangles[16
 
 MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	int cubesPerDimension = floor(1.0 / cubeSize) + 2;
-	// printf("Cubes Per Dimension: %d\n", cubesPerDimension);
 	int *data = (int *) calloc(((int) pow(cubesPerDimension, 3)), sizeof(int));
 	if(data == NULL)
 		return NULL;
@@ -381,6 +473,20 @@ void keyboard(unsigned char key, int x, int y){
 	}
 }
 
+int getListSize(List *list){
+	if(list == NULL)
+		return 0;
+	else
+		return 1 + getListSize(list->next);
+}
+
+void printHashSizes(Hash *hash){
+	int i;
+	for(i = 0; i < HASH_SIZE; i++){
+		printf("%d: %d\n", i, getListSize(hash->hashList[i]));
+	}
+}
+
 int main(int argc, char *argv[]){
 	if(argc != 4){
 		printf("Uso correto: %s [nuvem_de_pontos.xyz] [look-up_table.txt] [lado do cubo]\n", argv[0]);
@@ -399,13 +505,18 @@ int main(int argc, char *argv[]){
 	glutReshapeFunc(reshape);
 	
 	initScene();
+	initHash(&hash);
 
 	model = readXYZFile(argv[1]);
+	cubeSize = atof(argv[3]);
 	mcm = generateMeshFromXYZ(model, atof(argv[3]), argv[2]);
+	
+	printHashSizes(hash);
 
 	glutMainLoop();
 
 	freeMCM(&mcm);
 	freeXYZ(&model);
+	freeHash(&hash);
 	return 0;
 }
