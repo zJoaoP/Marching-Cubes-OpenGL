@@ -473,20 +473,6 @@ void keyboard(unsigned char key, int x, int y){
 	}
 }
 
-int getListSize(List *list){
-	if(list == NULL)
-		return 0;
-	else
-		return 1 + getListSize(list->next);
-}
-
-void printHashSizes(Hash *hash){
-	int i;
-	for(i = 0; i < HASH_SIZE; i++){
-		printf("%d: %d\n", i, getListSize(hash->hashList[i]));
-	}
-}
-
 int main(int argc, char *argv[]){
 	if(argc != 4){
 		printf("Uso correto: %s [nuvem_de_pontos.xyz] [look-up_table.txt] [lado do cubo]\n", argv[0]);
@@ -511,8 +497,6 @@ int main(int argc, char *argv[]){
 	cubeSize = atof(argv[3]);
 	mcm = generateMeshFromXYZ(model, atof(argv[3]), argv[2]);
 	
-	printHashSizes(hash);
-
 	glutMainLoop();
 
 	freeMCM(&mcm);
