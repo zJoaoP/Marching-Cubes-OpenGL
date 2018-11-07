@@ -321,6 +321,30 @@ MCM* generateMeshFromXYZ(XYZ *model, double cubeSize, char *lutFileName){
 	return mcm;
 }
 
+void generatePLY(MCM *mcm, char fileName[]){
+	FILE *file = fopen(fileName, "w");
+	if(file != NULL){
+		fprintf(file, "ply\n");
+		fprintf(file, "format ascii 1.0\n");
+		fprintf(file, "element vertex %d\n", mcm->vertexCount / 3);
+		fprintf(file, "property float x\n");
+		fprintf(file, "property float y\n");
+		fprintf(file, "property float z\n");
+		fprintf(file, "element face %d\n", mcm->facesCount / 3);
+		fprintf(file, "property list uchar int vertex_index\n");
+		fprintf(file, "end_header\n");
+
+		int i;
+		for(i = 0; i < mcm->vertexCount; i += 3)
+			fprintf(file, "%lf %lf %lf\n", mcm->vertexArray[i], mcm->vertexArray[i + 1], mcm->vertexArray[i + 2]);
+
+		for(i = 0; i < mcm->facesCount; i += 3)
+			fprintf(file, "3 %d %d %d\n", mcm->faces[i], mcm->faces[i + 1], mcm->faces[i + 2]);			
+
+		fclose(file);
+	}
+}
+
 int lineCount(char fileName[]){
 	FILE *file = fopen(fileName, "rw+");
 	int count = 0;
@@ -470,6 +494,11 @@ void keyboard(unsigned char key, int x, int y){
 	if(key == 'm' || key == 'M'){
 		pointCloudVisualization = !pointCloudVisualization;
 		glutPostRedisplay();
+	}
+	else if(key == 's' || key == 'S'){
+		printf("Salvando malha em output.PLY\n");
+		generatePLY(mcm, "output.PLY");
+		printf("A malha foi salva em output.PLY\n");
 	}
 }
 
