@@ -118,6 +118,7 @@ void freeHash(Hash **h){
 	for(i = 0; i < HASH_SIZE; i++)
 		freeList(&((*h)->hashList[i]));
 
+	free((*h)->hashList);
 	free(*h);
 }
 
@@ -158,11 +159,13 @@ MCM* initMCM(){
 
 void freeXYZ(XYZ **model){
 	free((*model)->vertexArray);
+	free(*model);
 }
 
 void freeMCM(MCM **mcm){
 	free((*mcm)->vertexArray);
 	free((*mcm)->faces);
+	free(*mcm);
 }
 
 void loadLookUpTable(int lookUpTable[256][16], char *lutFileName){
@@ -458,7 +461,7 @@ void draw(){
 		glDisable(GL_POLYGON_OFFSET_FILL);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		glColor3f(0.0, 0.0, 0.0);
+		glColor3f(0.3, 0.3, 0.3);
 		glPushMatrix();
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
@@ -487,7 +490,6 @@ void initScene(){
 	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_POLYGON_SMOOTH);
 }
 
 void keyboard(unsigned char key, int x, int y){
@@ -502,11 +504,19 @@ void keyboard(unsigned char key, int x, int y){
 	}
 }
 
+void freeMemory(){
+	printf("Free!\n");
+	freeMCM(&mcm);
+	freeXYZ(&model);
+	freeHash(&hash);
+}
+
 int main(int argc, char *argv[]){
 	if(argc != 4){
 		printf("Uso correto: %s [nuvem_de_pontos.xyz] [look-up_table.txt] [lado do cubo]\n", argv[0]);
 		return 1;
 	}
+	atexit(freeMemory);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 
@@ -527,9 +537,5 @@ int main(int argc, char *argv[]){
 	mcm = generateMeshFromXYZ(model, atof(argv[3]), argv[2]);
 	
 	glutMainLoop();
-
-	freeMCM(&mcm);
-	freeXYZ(&model);
-	freeHash(&hash);
 	return 0;
 }
