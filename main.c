@@ -14,6 +14,13 @@
 	MATA65 - Computação Gráfica
 
 	Trabalho Prático 2 - Marching Cubes
+
+	Observações:
+			# O WireCube desenhado em azul possui centro em (0.5, 0.5, 0.5) e lado = 1. O objetivo de sua visualização é constatar que
+		as coordenadas do coelho estão sendo normalizadas.
+		
+			# Um item observado nas especificações é que a malha gerada (Tratada aqui como uma struct MarchingCubesMesh) não deve possuir
+		repetição de pontos. Para isso, foi implementada uma estrutura de dados de hash, cujo tamanho é passado pela constante 'HASH_SIZE'.
 */
 #define INF (1 << 29)
 #define HASH_SIZE 2048
@@ -419,7 +426,7 @@ void drawUnitaryBox(){
 void setupCamera(){
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(10.0f, ratio, 0.1, 500.0);
+	gluPerspective(10.0f, ratio, 0.1, 10.0);
 	gluLookAt(2.5, 2, 8, 0.45, 0.45, 0.4, 0, 1, 0);
 }
 
@@ -487,7 +494,7 @@ void reshape(int w, int h){
 void initScene(){
 	glMatrixMode(GL_MODELVIEW);
 	glClearColor(0.0, 0.0, 0.0, 0.0);
-	glOrtho(-20.0, 20.0, -20.0, 20.0, -20.0, 20.0);
+	glOrtho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
 
 	glEnable(GL_DEPTH_TEST);
 }
@@ -505,7 +512,6 @@ void keyboard(unsigned char key, int x, int y){
 }
 
 void freeMemory(){
-	printf("Free!\n");
 	freeMCM(&mcm);
 	freeXYZ(&model);
 	freeHash(&hash);
